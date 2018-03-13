@@ -9,7 +9,7 @@
 
 #![cfg(test)]
 
-use crate::{FreeSuspended, Suspend0, Suspend1, Close1, Open1};
+use crate::{FreeSuspended, Func1, Suspend0, Suspend1, Close1, Open1, Opened1};
 
 struct VecU32Ref { }
 
@@ -29,8 +29,14 @@ impl FreeSuspended for VecU32Ref {
 
 impl Open1<'a> for VecU32Ref {
     type Output = Vec<&'a u32>;
+}
 
-    fn open(data: &mut Self::Output) -> String {
+struct FormatVecU32Ref;
+
+impl Func1<VecU32Ref> for FormatVecU32Ref {
+    type Output = String;
+
+    fn invoke<'a>(self, data: &mut Opened1<'a, VecU32Ref>) -> Self::Output {
         format!("{:?}", data)
     }
 }
@@ -39,6 +45,6 @@ impl Open1<'a> for VecU32Ref {
 fn test() {
     let x = Suspend0::new((1, 2, 3));
     let mut y = x.layer::<VecU32Ref>();
-    let s = y.open();
+    let s = y.open(FormatVecU32Ref);
     assert_eq!(s, "[1, 2, 3]");
 }
