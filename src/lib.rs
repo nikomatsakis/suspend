@@ -1,3 +1,4 @@
+#![feature(arbitrary_self_types)]
 #![feature(crate_in_paths)]
 #![feature(crate_visibility_modifier)]
 #![feature(in_band_lifetimes)]
@@ -44,15 +45,35 @@ impl<T> Suspend0<T> {
     }
 }
 
-pub struct Suspend1<'bound, L: Close1> {
+pub struct Suspend1<'bound, L: FreeSuspended> {
     closed_data: Option<Box<L>>,
     drop_thunk: Box<DropThunk + 'bound>,
 }
 
-pub trait Close1: Sized + for<'a> Open1<'a> {
+pub trait FreeSuspended: Sized {
+    fn free_closed_data(self: &mut Suspend1<'bound, Self>);
+}
+
+pub trait Close1: FreeSuspended + for<'a> Open1<'a> {
     type Input;
 
     fn build<'a>(input: &'a Self::Input) -> <Self as Open1<'a>>::Output;
+
+    fn open(self: &mut Suspend1<'bound, Self>) -> String {
+        unsafe {
+            let closed_data_ref: &mut Self = self.closed_data.as_mut().unwrap();
+            let open_data_ref: &mut Opened1<'_, Self> = mem::transmute(closed_data_ref);
+            <Self as Open1<'_>>::open(open_data_ref)
+        }
+    }
+}
+
+pub fn free_close1_data<L: Close1>(suspend: &mut Suspend1<'bound, L>) {
+    unsafe {
+        let closed_data: Box<L> = suspend.closed_data.take().unwrap();
+        let open_data: Box<Opened1<'_, L>> = mem::transmute(closed_data);
+        mem::drop(open_data);
+    }
 }
 
 pub trait Open1<'a> {
@@ -63,28 +84,22 @@ pub trait Open1<'a> {
 
 type Opened1<'a, L> = <L as Open1<'a>>::Output;
 
-impl<'bound, L> Suspend1<'bound, L>
+impl<'bound, L> Drop for Suspend1<'bound, L>
 where
-    L: Close1,
+    L: FreeSuspended,
 {
-    pub fn open(&mut self) -> String {
-        unsafe {
-            let closed_data_ref: &mut L = self.closed_data.as_mut().unwrap();
-            let open_data_ref: &mut Opened1<'_, L> = mem::transmute(closed_data_ref);
-            <L as Open1<'_>>::open(open_data_ref)
-        }
+    fn drop(&mut self) {
+        self.free_closed_data();
     }
 }
 
-impl<'bound, L> Drop for Suspend1<'bound, L>
+impl<'bound, L> ::std::ops::Deref for Suspend1<'bound, L>
 where
-    L: Close1,
+    L: FreeSuspended,
 {
-    fn drop(&mut self) {
-        unsafe {
-            let closed_data: Box<L> = self.closed_data.take().unwrap();
-            let open_data: Box<Opened1<'_, L>> = mem::transmute(closed_data);
-            mem::drop(open_data);
-        }
+    type Target = L;
+
+    fn deref(&self) -> &Self::Target {
+        self.closed_data.as_ref().unwrap()
     }
 }

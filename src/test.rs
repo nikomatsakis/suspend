@@ -9,7 +9,7 @@
 
 #![cfg(test)]
 
-use crate::{Suspend0, Close1, Open1};
+use crate::{FreeSuspended, Suspend0, Suspend1, Close1, Open1};
 
 struct VecU32Ref { }
 
@@ -18,6 +18,12 @@ impl Close1 for VecU32Ref {
 
     fn build<'a>(tuple: &'a Self::Input) -> <Self as Open1<'a>>::Output {
         vec![&tuple.0, &tuple.1, &tuple.2]
+    }
+}
+
+impl FreeSuspended for VecU32Ref {
+    fn free_closed_data(self: &mut Suspend1<'bound, Self>) {
+        ::free_close1_data(self)
     }
 }
 
