@@ -1,9 +1,9 @@
 use std::mem;
 
 /// Just carries a dtor
-crate trait DropThunk {}
+pub(crate) trait DropThunk {}
 
-crate unsafe fn split_box<'bound, T: 'bound>(value: Box<T>) -> (*mut T, Box<DropThunk + 'bound>) {
+pub(crate) unsafe fn split_box<'bound, T: 'bound>(value: Box<T>) -> (*mut T, Box<DropThunk + 'bound>) {
     let ptr: *mut T = mem::transmute(value);
     let thunk = BoxDropThunk { ptr };
     (ptr, Box::new(thunk))
