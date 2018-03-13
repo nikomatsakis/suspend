@@ -13,16 +13,16 @@ pub mod layer1;
 
 use crate::drop_thunk::DropThunk;
 
-pub struct Suspend1<'bound, L: FreeSuspended> {
+pub struct Suspend<'bound, L: FreeSuspended> {
     closed_data: Option<Box<L>>,
     drop_thunk: Box<DropThunk + 'bound>,
 }
 
 pub trait FreeSuspended: Sized {
-    fn free_closed_data(self: &mut Suspend1<'bound, Self>);
+    fn free_closed_data(self: &mut Suspend<'bound, Self>);
 }
 
-impl<'bound, L> Drop for Suspend1<'bound, L>
+impl<'bound, L> Drop for Suspend<'bound, L>
 where
     L: FreeSuspended,
 {
@@ -31,7 +31,7 @@ where
     }
 }
 
-impl<'bound, L> ::std::ops::Deref for Suspend1<'bound, L>
+impl<'bound, L> ::std::ops::Deref for Suspend<'bound, L>
 where
     L: FreeSuspended,
 {

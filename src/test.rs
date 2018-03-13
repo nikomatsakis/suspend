@@ -9,7 +9,7 @@
 
 #![cfg(test)]
 
-use crate::{FreeSuspended, Suspend1};
+use crate::{FreeSuspended, Suspend};
 use crate::layer1::{Close1, Open1, Opened1, Func1};
 
 struct VecU32Ref { }
@@ -23,7 +23,7 @@ impl Close1 for VecU32Ref {
 }
 
 impl FreeSuspended for VecU32Ref {
-    fn free_closed_data(self: &mut Suspend1<'bound, Self>) {
+    fn free_closed_data(self: &mut Suspend<'bound, Self>) {
         ::crate::layer1::free_close1_data(self)
     }
 }

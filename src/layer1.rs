@@ -1,14 +1,14 @@
 use std::mem;
 
 use crate::drop_thunk;
-use crate::{FreeSuspended, Suspend1};
+use crate::{FreeSuspended, Suspend};
 
 pub trait Close1: FreeSuspended + for<'a> Open1<'a> {
     type Input;
 
     fn build<'a>(input: &'a Self::Input) -> <Self as Open1<'a>>::Output;
 
-    fn layer_on<'bound>(value: Self::Input) -> Suspend1<'bound, Self>
+    fn layer_on<'bound>(value: Self::Input) -> Suspend<'bound, Self>
     where
         Self::Input: 'bound,
     {
@@ -16,14 +16,14 @@ pub trait Close1: FreeSuspended + for<'a> Open1<'a> {
             let (data_ptr, drop_thunk) = drop_thunk::split_box(Box::new(value));
             let open_data: Box<Opened1<'_, Self>> = Box::new(Self::build(&*data_ptr));
             let closed_data: Option<Box<Self>> = Some(mem::transmute(open_data));
-            Suspend1 {
+            Suspend {
                 closed_data,
                 drop_thunk,
             }
         }
     }
 
-    fn open<F>(self: &mut Suspend1<'bound, Self>, func: F) -> F::Output
+    fn open<F>(self: &mut Suspend<'bound, Self>, func: F) -> F::Output
     where
         F: Func1<Self>,
     {
@@ -35,7 +35,7 @@ pub trait Close1: FreeSuspended + for<'a> Open1<'a> {
     }
 }
 
-pub fn free_close1_data<L: Close1>(suspend: &mut Suspend1<'bound, L>) {
+pub fn free_close1_data<L: Close1>(suspend: &mut Suspend<'bound, L>) {
     unsafe {
         let closed_data: Box<L> = suspend.closed_data.take().unwrap();
         let open_data: Box<Opened1<'_, L>> = mem::transmute(closed_data);
