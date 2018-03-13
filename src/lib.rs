@@ -1,7 +1,6 @@
 #![feature(arbitrary_self_types)]
 
 mod drop_thunk;
-mod test;
 
 pub mod layer1;
 
