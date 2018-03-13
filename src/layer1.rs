@@ -51,6 +51,9 @@ pub trait Close1: FreeSuspended + for<'a> Open1<'a> {
     }
 }
 
+/// This is a helper type for implementing the `FreeSuspended` trait.
+/// Types that implement `Close1` can just invoke this. Annoyingly,
+/// coherence rules prevent us from making it automatic.
 pub fn free_close1_data<L: Close1>(suspend: &mut Suspend<'bound, L>) {
     unsafe {
         let closed_data: Box<L> = suspend.closed_data.take().unwrap();
@@ -59,10 +62,16 @@ pub fn free_close1_data<L: Close1>(suspend: &mut Suspend<'bound, L>) {
     }
 }
 
+/// This auxiliary trait to `Close1` is used to indicate the "full
+/// type" of the reference -- the lifetime parameter `'a` is
+/// effectively an existential lifetime. The existence of this trait
+/// is a work-around for the lack of Generic Associated Types.
 pub trait Open1<'a> {
     type Output;
 }
 
+/// A reference to some `Close1` type, instantiated with the value
+/// `'a` for the existential lifetime.
 pub type Opened1<'a, L> = <L as Open1<'a>>::Output;
 
 /// Defines a closure that takes as input a "opened" layer-1 value.
