@@ -9,7 +9,7 @@
 
 #![cfg(test)]
 
-use crate::{FreeSuspended, Suspend0, Suspend1};
+use crate::{FreeSuspended, Suspend1};
 use crate::layer1::{Close1, Open1, Opened1, Func1};
 
 struct VecU32Ref { }
@@ -44,8 +44,7 @@ impl Func1<VecU32Ref> for FormatVecU32Ref {
 
 #[test]
 fn test() {
-    let x = Suspend0::new((1, 2, 3));
-    let mut y = x.layer::<VecU32Ref>();
+    let mut y = VecU32Ref::layer_on((1, 2, 3));
     let s = y.open(FormatVecU32Ref);
     assert_eq!(s, "[1, 2, 3]");
 }
