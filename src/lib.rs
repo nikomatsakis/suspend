@@ -23,7 +23,7 @@ use crate::drop_thunk::DropThunk;
 /// - The bound `'bound` is a bound on the overall lifetime of the
 ///   data that the existential lifetimes may refer to (which does not
 ///   otherwise appear in `Suspend`).
-pub struct Suspend<'bound, L: FreeSuspended> {
+pub struct Suspend<'bound, L> {
     /// Contains the closed over data. This `Box` *actually* stores
     /// the "opened" form of the data in `L`, but we give it the
     /// "closed" form of the type to hide the existential lifetime.
@@ -31,31 +31,23 @@ pub struct Suspend<'bound, L: FreeSuspended> {
     /// Always `Some` except when dtor has run.
     closed_data: Option<Box<L>>,
 
+    /// A function that runs in the dtor. It is given the `Box<L>`
+    /// and is meant to open and free it.
+    free_suspended: fn(Box<L>),
+
     /// This drop-thunk, when dropped, will cause all the hidden data
     /// to be freed. The "hidden data" consists of boxes that were
     /// used to build the closed-data.
     drop_thunk: Box<DropThunk + 'bound>,
 }
 
-/// An implementation detail: this trait is used to open and free the
-/// `closed_data` field.
-pub trait FreeSuspended: Sized {
-    fn free_closed_data(self: &mut Suspend<'bound, Self>);
-}
-
-impl<'bound, L> Drop for Suspend<'bound, L>
-where
-    L: FreeSuspended,
-{
+impl<'bound, L> Drop for Suspend<'bound, L> {
     fn drop(&mut self) {
-        self.free_closed_data();
+        (self.free_suspended)(self.closed_data.take().unwrap());
     }
 }
 
-impl<'bound, L> ::std::ops::Deref for Suspend<'bound, L>
-where
-    L: FreeSuspended,
-{
+impl<'bound, L> ::std::ops::Deref for Suspend<'bound, L> {
     type Target = L;
 
     fn deref(&self) -> &Self::Target {

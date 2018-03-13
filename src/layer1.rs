@@ -1,7 +1,7 @@
 use std::mem;
 
 use crate::drop_thunk;
-use crate::{FreeSuspended, Suspend};
+use crate::Suspend;
 
 /// Defines the "closed" -- or "suspended" -- version of a reference
 /// with one existential lifetime. In this version, the existential
@@ -19,7 +19,7 @@ use crate::{FreeSuspended, Suspend};
 ///
 /// The actual construction of the `Close1` is done by the `build`
 /// method, which is internal to `Close1`.
-pub trait Close1: FreeSuspended + for<'a> Open1<'a> {
+pub trait Close1: Sized + for<'a> Open1<'a> {
     type Input;
 
     fn build<'a>(input: &'a Self::Input) -> Opened1<'a, Self>;
@@ -34,6 +34,7 @@ pub trait Close1: FreeSuspended + for<'a> Open1<'a> {
             let closed_data: Option<Box<Self>> = Some(mem::transmute(open_data));
             Suspend {
                 closed_data,
+                free_suspended: free_close1_data,
                 drop_thunk,
             }
         }
@@ -54,9 +55,8 @@ pub trait Close1: FreeSuspended + for<'a> Open1<'a> {
 /// This is a helper type for implementing the `FreeSuspended` trait.
 /// Types that implement `Close1` can just invoke this. Annoyingly,
 /// coherence rules prevent us from making it automatic.
-pub fn free_close1_data<L: Close1>(suspend: &mut Suspend<'bound, L>) {
+fn free_close1_data<L: Close1>(closed_data: Box<L>) {
     unsafe {
-        let closed_data: Box<L> = suspend.closed_data.take().unwrap();
         let open_data: Box<Opened1<'_, L>> = mem::transmute(closed_data);
         mem::drop(open_data);
     }
