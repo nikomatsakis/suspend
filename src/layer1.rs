@@ -23,12 +23,12 @@ pub trait Close1: FreeSuspended + for<'a> Open1<'a> {
         }
     }
 
-    fn open<'bound, F>(self: &mut Suspend1<'bound, Self>, func: F) -> F::Output
+    fn open<'bound, F>(this: &mut Suspend1<'bound, Self>, func: F) -> F::Output
     where
         F: Func1<Self>,
     {
         unsafe {
-            let closed_data_ref: &mut Self = self.closed_data.as_mut().unwrap();
+            let closed_data_ref: &mut Self = this.closed_data.as_mut().unwrap();
             let open_data_ref: &mut Opened1<Self> = mem::transmute(closed_data_ref);
             func.invoke(open_data_ref)
         }

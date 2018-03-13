@@ -1,5 +1,3 @@
-#![feature(arbitrary_self_types)]
-
 mod drop_thunk;
 
 pub mod layer1;
@@ -12,7 +10,7 @@ pub struct Suspend1<'bound, L: FreeSuspended> {
 }
 
 pub trait FreeSuspended: Sized {
-    fn free_closed_data<'bound>(self: &mut Suspend1<'bound, Self>);
+    fn free_closed_data<'bound>(this: &mut Suspend1<'bound, Self>);
 }
 
 impl<'bound, L> Drop for Suspend1<'bound, L>
@@ -20,7 +18,7 @@ where
     L: FreeSuspended,
 {
     fn drop(&mut self) {
-        self.free_closed_data();
+        FreeSuspended::free_closed_data(self);
     }
 }
 
